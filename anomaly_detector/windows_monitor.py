@@ -57,10 +57,12 @@ class WindowsAnomalyDetector:
         print(f"Monitoring Interface: {target_interface}")
         print()
         
+        # Update monitor's interface before monitoring
+        self.monitor.interface = target_interface
+        
         # Run monitoring
         print("[1] Analyzing packet loss and connection quality...")
         monitor_results = self.monitor.monitor_interface(
-            interface=target_interface,
             duration=timeout,
             interval=1
         )
