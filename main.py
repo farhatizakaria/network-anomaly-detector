@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 🌐 Network Anomaly Detector - Modern TUI/CLI Application
 Detects network anomalies including loops, packet loss, and latency issues.
