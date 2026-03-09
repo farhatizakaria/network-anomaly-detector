@@ -3,6 +3,7 @@
 from scapy.all import sniff, IP, ICMP, TCP, UDP
 from collections import defaultdict
 import time
+import socket
 from datetime import datetime
 from .platform_utils import PlatformInfo
 
@@ -44,39 +45,53 @@ class PacketAnalyzer:
                 'prn': packet_callback,
                 'count': self.packet_count,
                 'timeout': timeout,
-                'store': False
+                'store': False,
+                'filter': None  # Start with no filter
             }
             
             # On Windows, interface parameter might need to be the IP address
             if self.interface and PlatformInfo.is_windows():
-                # Try the interface as-is first, Scapy will handle it
                 sniff_kwargs['iface'] = self.interface
             elif self.interface:
                 # Linux/macOS: use iface parameter
                 sniff_kwargs['iface'] = self.interface
-            # If no interface specified, Scapy will use the default
             
+            # Try to sniff with these parameters
             sniff(**sniff_kwargs)
             print(f"Captured {len(self.packets)} packets")
-        except PermissionError:
+            
+        except PermissionError as e:
             print("❌ Error: Admin/Root privileges required for packet capture")
             if PlatformInfo.is_windows():
                 print("   Solution: Run command prompt/PowerShell as Administrator")
             else:
                 print("   Solution: Use 'sudo python main.py' or check sudo permissions")
+                print("   Or install with capabilities: sudo setcap cap_net_raw=ep /usr/bin/python3")
             return False
-        except OSError as e:
-            print(f"❌ OS Error: {e}")
-            print("   This might be a network interface issue")
-            if PlatformInfo.is_windows():
-                print("   Solution: Check if Npcap is installed (required for Scapy on Windows)")
-                print("   Download: https://npcap.com/")
+            
+        except (OSError, socket.error) as e:
+            error_str = str(e)
+            print(f"❌ Socket Error: {e}")
+            
+            # Suggest solutions based on error type
+            if "Address family not supported" in error_str:
+                print("   The system might not support raw packet capture in this environment")
+                print("   (This can happen in containers, VMs, or restricted networks)")
+            elif "No such device" in error_str:
+                print("   Network interface not found or not accessible")
+                print("   Solution: Check interface with 'ip link show'")
             else:
-                print("   Solution: Verify network interface exists: 'ip link show'")
+                print("   This might be a network interface or socket issue")
+                
+            if not PlatformInfo.is_windows():
+                print("   Try running with: sudo python main.py")
+                print("   Or check if libpcap is installed")
+                
             return False
+            
         except Exception as e:
-            print(f"❌ Capture error: {e}")
-            if "No module named 'pcap'" in str(e) or "packet capture device" in str(e):
+            print(f"❌ Capture error: {type(e).__name__}: {e}")
+            if "No module named 'pcap'" in str(e):
                 if PlatformInfo.is_windows():
                     print("   Install Npcap from: https://npcap.com/")
                 else:

@@ -79,6 +79,7 @@ celerybeat-schedule
 env/
 venv/
 ENV/
+VENV/
 env.bak/
 venv.bak/
 
@@ -94,6 +95,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
 
 # IDE
 .vscode/
@@ -101,8 +107,19 @@ venv.bak/
 *.swp
 *.swo
 *~
+.DS_Store
+
+# Windows
+Thumbs.db
+*.lnk
+*.exe
+*.dll
+*.lib
 
 # Project specific
 *.pcap
 reports/
 captures/
+*.csv
+*.json
+results/

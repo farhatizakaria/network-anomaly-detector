@@ -1,309 +1,353 @@
-# Network Anomaly Detector
+# 🌐 Network Anomaly Detector
 
-A comprehensive Python tool for detecting network anomalies including routing loops, packet loss, and latency issues.
+A **modern, beautiful Python tool** for detecting network anomalies including routing loops, packet loss, and latency issues.
 
-**Supports**: Windows, Linux, and macOS
-
-## 📋 Platform Setup Guides
-
-⚡ **New to this project?** Start here:
-
-- **Windows Users**: See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed instructions
-- **Linux/macOS Users**: See [LINUX_SETUP.md](LINUX_SETUP.md) for detailed instructions
-- **All Platforms**: See [PLATFORMS.md](PLATFORMS.md) for overview
-
-For a quick start, see [QUICKSTART.md](QUICKSTART.md)
-
-## Features Continued
-
-### Platform-Specific Detection
-
-**Linux/macOS**:
-- Routing loop detection (TTL variance analysis)
-- Packet loss analysis (sequence inspection)
-- Latency spikes and jitter (statistical analysis)
-- Circular routing detection
-
-**Windows**:
-- Packet loss detection (interface counters)
-- Bandwidth anomaly detection
-- Connection state analysis
-- DNS/Connectivity latency testing
-- System network statistics
-
-*Windows uses pure Python libraries (psutil) for monitoring - no external tools required!*
-
-
-
-## Installation
-
-### Windows
-
-1. **Install Python** (if not already installed): https://python.org
-2. Clone or download this repository
-3. Open Command Prompt and navigate to the project directory
-4. Install dependencies:
-   ```cmd
-   pip install -r requirements.txt
-   ```
-   
-**✨ No external tools required! Uses pure Python libraries only.**
-
-### Linux/macOS
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Requirements
-- Python 3.7+
-- Scapy (packet manipulation)
-- NumPy (numerical analysis)
-- Pandas (data analysis)
-- SciPy (statistical analysis)
-- Matplotlib (visualization)
-- PyYAML (configuration)
-
-**Note**: Packet capture requires root/admin privileges.
-
-## Usage
-
-### Windows (Pure Python - No External Tools!) ✨
-
-```cmd
-# Activate virtual environment
-venv\Scripts\activate
-
-# Basic usage (no admin needed!)
-python main.py
-
-# Specify network interface
-python main.py --interface "Ethernet"
-
-# Set custom parameters
-python main.py --timeout 15
-
-# View options
-python main.py --help
-```
-
-**Note**: No Npcap, Wireshark, or external tools required!
-
-### Linux/macOS
-
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Run with sudo for detailed analysis
-sudo python main.py
-
-# Specify interface
-sudo python main.py --interface eth0
-
-# Set custom parameters
-sudo python main.py --timeout 15 --packets 200
-```
-
-### Programmatic Usage
-
-```python
-from anomaly_detector import AnomalyDetector
-from anomaly_detector.platform_utils import PlatformInfo
-
-# Check platform information
-print(f"Running on: {PlatformInfo.get_system()}")
-print(f"Admin/Root: {PlatformInfo.require_admin()}")
-
-# Create detector
-detector = AnomalyDetector(interface='eth0', config={
-    'packet_count': 100,
-    'latency_threshold_ms': 100,
-    'loss_threshold': 5.0
-})
-
-# Run analysis
-results = detector.analyze(timeout=10)
-
-# Access results
-loops = results['loops']
-losses = results['losses']
-latencies = results['latencies']
-
-# Process results
-for loop in loops:
-    print(f"Loop detected: {loop['description']}")
-```
-
-## Modules
-
-### packet_analyzer.py
-Captures and analyzes raw network packets using Scapy. Provides statistics and packet grouping by flow.
-
-**Key Classes:**
-- `PacketAnalyzer`: Main packet capture and analysis class
-
-### loop_detector.py
-Detects routing loops through:
-- TTL variance analysis for each src-dst pair
-- Circular routing pattern detection
-- Bidirectional flow intensity analysis
-
-**Key Classes:**
-- `LoopDetector`: Identifies routing loops and circular paths
-
-### loss_detector.py
-Detects packet loss through:
-- Timing gap analysis (missing packets create larger delays)
-- Sequence number gap detection
-- Baseline comparison against expected rates
-
-**Key Classes:**
-- `PacketLossDetector`: Identifies packet loss events
-
-### latency_detector.py
-Detects latency anomalies through:
-- High latency detection (above absolute threshold)
-- Latency spike detection (statistical outliers)
-- Jitter detection (high variance in latency)
-
-**Key Classes:**
-- `LatencyDetector`: Comprehensive latency analysis
-
-### detector.py
-Main orchestrator that combines all detectors and generates reports.
-
-**Key Classes:**
-- `AnomalyDetector`: Main API for anomaly detection
-
-## Anomaly Types
-
-### Routing Loops
-- **TTL_VARIANCE**: Inconsistent TTL values between same src-dst pairs indicate looping packets
-- **CIRCULAR_ROUTING**: Bidirectional flows indicating circular routing
-
-### Packet Loss
-- **TIMING_GAP**: Large gaps in packet timing suggest lost packets
-- Estimated loss percentage computed from gap sizes
-
-### Latency Issues
-- **HIGH_LATENCY**: Average latency exceeds threshold
-- **LATENCY_SPIKE**: Individual packets have significantly delayed delivery
-- **HIGH_JITTER**: High variance in packet arrival times
-
-## Configuration
-
-Edit `config.py` to customize detection parameters:
-
-```python
-LOOP_DETECTION = {
-    'ttl_variance_threshold': 3,      # TTL std dev threshold
-    'circle_threshold': 0.8,           # Circular routing intensity
-}
-
-LATENCY_DETECTION = {
-    'threshold_ms': 100,               # High latency threshold
-    'zscore_threshold': 2.5,           # Spike detection sensitivity
-}
-
-LOSS_DETECTION = {
-    'loss_threshold': 5.0,             # Loss percentage threshold
-}
-```
-
-## Output
-
-The tool provides:
-1. **Console Report**: Real-time detection results with severity levels
-2. **Detailed Anomaly List**: Complete information for each detected anomaly
-3. **Summary Statistics**: Total anomalies, severity breakdown, and recommendations
-
-### Severity Levels
-
-- 🔴 **CRITICAL**: Immediate investigation required
-- 🟠 **HIGH**: Significant network issues
-- 🟡 **MEDIUM**: Minor anomalies to monitor
-
-## Examples
-
-### Example 1: Detecting a Routing Loop
-
-```python
-from anomaly_detector import AnomalyDetector
-
-detector = AnomalyDetector()
-results = detector.analyze(timeout=15)
-
-for loop in results['loops']:
-    if loop['type'] == 'TTL_VARIANCE':
-        print(f"Loop between {loop['source']} and {loop['destination']}")
-        print(f"TTL variance: {loop['ttl_std']:.2f}")
-```
-
-### Example 2: Monitoring Link Quality
-
-```python
-detector = AnomalyDetector(config={'latency_threshold_ms': 150})
-results = detector.analyze(timeout=10)
-
-total_loss = sum(e['loss_percentage'] for e in results['losses'])
-print(f"Total packet loss: {total_loss:.1f}%")
-```
-
-## Limitations
-
-- **All Platforms**: Requires admin/root privileges for detailed monitoring
-- Accuracy depends on sample size (more packets = better analysis)
-- Unable to analyze encrypted traffic (can only see packet headers on Linux/macOS)
-- May have false positives in unstable network conditions
-- TTL analysis only works for IPv4 traffic (Linux/macOS only)
-- **Windows**: Routing loop detection not available (uses different approach - see Features)
-
-## Future Enhancements
-
-- [ ] IPv6 support
-- [ ] Persistent data storage and trending
-- [ ] Network topology mapping
-- [ ] TCP sequence number analysis
-- [ ] Visualization dashboards
-- [ ] Alert notifications (email, Slack, PagerDuty)
-- [ ] Machine learning for adaptive thresholds
-- [ ] Partial packet capture support
-
-## Troubleshooting
-
-### Permission Denied
-```bash
-# Run with sudo
-sudo python main.py
-
-# Or give specific capabilities (Linux)
-sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/python3
-```
-
-### No Packets Captured
-- Check if interface name is correct: `ifconfig` / `ipconfig`
-- Disable firewall temporarily
-- Try the default interface without specifying one
-
-### Too Many False Positives
-- Adjust thresholds in `config.py`
-- Increase sample size (--packets parameter)
-- Run on a stable baseline first
-
-## License
-
-MIT License
-
-## Contributing
-
-Contributions are welcome! Areas for improvement:
-- Additional anomaly detection methods
-- Performance optimization
-- Extended protocol support
-- Visualization tools
+🎯 **Supports**: Windows, Linux, and macOS  
+📦 **Pure Python** - No external tools required!  
+✨ **Modern TUI/CLI** - Interactive, stunning interface  
 
 ---
 
-**Note**: This tool is for network monitoring and diagnostics. Ensure you have proper authorization before monitoring network traffic.
+## ✨ Features
+
+### 🔄 Routing Loop Detection
+- Detects circular routing patterns using TTL (Time To Live) variance analysis
+- Identifies potentially problematic network paths
+
+### 📉 Packet Loss Analysis
+- Monitors packet sequence numbers for missing packets
+- Quantifies connection quality issues
+- Cross-platform compatible
+
+### ⚡ Latency Anomaly Detection
+- Statistical analysis using Z-scores
+- Identifies latency spikes and jitter
+- Real-time performance monitoring
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Python 3.7+**
+- **Administrator/Root privileges** (for packet capture)
+  - Linux/macOS: `sudo python main.py`
+  - Windows: Run cmd/PowerShell as Administrator
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd Networking
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run with interactive mode (recommended)
+python main.py --interactive
+
+# Or run with default settings
+python main.py
+```
+
+---
+
+## 📖 Usage
+
+### 🎮 Interactive Mode
+Recommended for most users - provides guided prompts and beautiful visualization:
+
+```bash
+python main.py --interactive
+```
+
+Features:
+- 📋 Menu-driven interface
+- 🎨 Colorful output with emojis
+- ⚙️ Custom parameter configuration
+- ❓ Built-in help system
+
+### 💻 Command-Line Mode
+
+```bash
+# Monitor with default settings
+python main.py
+
+# Custom interface monitoring
+python main.py --interface eth0
+
+# Extended analysis duration
+python main.py --timeout 30 --packets 500
+
+# Full custom configuration
+python main.py \
+  --interface eth0 \
+  --timeout 20 \
+  --packets 200 \
+  --latency-threshold 150 \
+  --loss-threshold 3.0
+```
+
+### 📊 Output
+
+The tool displays results in beautiful, organized tables:
+
+```
+🔄 ROUTING LOOPS DETECTED
+┌─────┬──────────────┬──────────────────┐
+│ ID  │ Path         │ TTL Variance     │
+├─────┼──────────────┼──────────────────┤
+│ 1   │ 192.168.1.1  │ 2.45             │
+└─────┴──────────────┴──────────────────┘
+
+📉 PACKET LOSS EVENTS
+┌───────┬──────────┬────────────────────┐
+│ Event │ Loss %   │ Packets Analyzed   │
+├───────┼──────────┼────────────────────┤
+│ 1     │ 8.50%    │ 200                │
+└───────┴──────────┴────────────────────┘
+
+⚡ LATENCY ANOMALIES
+┌──────────┬────────────────┬──────────┐
+│ Anomaly  │ Value (ms)     │ Severity │
+├──────────┼────────────────┼──────────┤
+│ Spike 1  │ 250.45         │ HIGH     │
+└──────────┴────────────────┴──────────┘
+```
+
+---
+
+## 🛠️ All Command Options
+
+```
+--interface, -i         Network interface to monitor (e.g., eth0, en0)
+                       Default: auto-detect
+
+--timeout, -t          Capture duration in seconds
+                       Range: 1-300 seconds
+                       Default: 10
+
+--packets, -p          Number of packets to capture
+                       Range: 10-10000
+                       Default: 100
+
+--latency-threshold    Latency threshold (milliseconds)
+                       Range: 10-5000 ms
+                       Default: 100 ms
+
+--loss-threshold       Packet loss threshold (percentage)
+                       Range: 0.1-100 %
+                       Default: 5.0 %
+
+--interactive          Launch interactive menu mode
+```
+
+---
+
+## 📋 Platform-Specific Information
+
+### Linux & macOS
+- Uses Scapy for packet capture
+- Requires root/sudo privileges
+- Supports both IPv4 and IPv6
+- Direct packet analysis from network stack
+
+**Setup:**
+```bash
+sudo python main.py
+# or enable packet capture without sudo:
+# sudo setcap cap_net_raw=ep /usr/bin/python3
+```
+
+### Windows
+- Uses pure Python libraries (psutil) for monitoring
+- Run cmd/PowerShell as Administrator
+- Note: Some advanced packet analysis features may be limited without Npcap/Winpcap
+
+**Setup:**
+```cmd
+# Run as Administrator
+python main.py
+```
+
+---
+
+## ⚠️ Requirements & Privileges
+
+| OS | Requirement | How to Run |
+|---|---|---|
+| **Linux/macOS** | Root/sudo | `sudo python main.py` |
+| **Windows** | Admin | Right-click cmd/PowerShell → "Run as administrator" |
+
+Without proper privileges:
+- ❌ Packet capture will fail
+- ❌ Real-time analysis unavailable
+- ⚠️ Only basic statistics available
+
+---
+
+## 📦 Dependencies
+
+```
+scapy>=2.5.0              - Packet manipulation
+numpy>=1.21.0             - Numerical analysis
+pandas>=1.3.0             - Data processing
+scipy>=1.7.0              - Scientific computing
+psutil>=5.9.0             - System monitoring
+rich>=13.0.0              - Beautiful terminal output
+typer>=0.9.0              - Modern CLI framework
+questionary>=2.0.0        - Interactive prompts
+```
+
+Install all dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 🔍 How It Works
+
+### Detection Pipeline
+
+1. **Packet Capture**
+   - Captures raw network packets from specified interface
+   - Builds packet statistics database
+
+2. **Analysis Modules**
+   ```
+   Packets → Loop Detector → Loss Detector → Latency Detector → Results
+   ```
+
+3. **Results Aggregation**
+   - Combines all detections
+   - Color-codes severity levels
+   - Generates visual reports
+
+---
+
+## 🎨 Features Highlights
+
+### 🌈 Beautiful Terminal UI
+- Color-coded alerts and statuses
+- Unicode borders and emojis
+- Progress bars with real-time updates
+- Organized data tables
+
+### 🎯 Smart Defaults
+- Auto-detect network interface
+- Intelligent threshold setting
+- Platform-aware configuration
+
+### 🔄 Real-Time Monitoring
+- Live progress indicators
+- Animated analysis feedback
+- Instant result display
+
+---
+
+## ❓ FAQ & Troubleshooting
+
+### "No packets captured"
+- Ensure you have **admin/root privileges**
+- Verify interface name: `ip link show` (Linux) or `ipconfig` (Windows)
+- Check if interface is active and has traffic
+
+### "Permission denied"
+- **Linux/macOS**: Run with `sudo`
+- **Windows**: Run cmd/PowerShell as Administrator
+
+### "Timeout waiting for packets"
+- Network interface may be idle
+- Try monitoring during active traffic
+- Increase `--packets` for larger sample
+
+### "All results are green but network seems slow"
+- Increase analysis duration: `--timeout 30`
+- Use larger packet sample: `--packets 500`
+- Adjust threshold sensitivity
+
+---
+
+## 📝 Project Structure
+
+```
+Networking/
+├── main.py                      # Modern TUI/CLI entry point
+├── requirements.txt             # Python dependencies
+├── config.py                    # Configuration defaults
+├── README.md                    # This file
+├── PLATFORMS.md                 # Platform-specific details
+├── setup.py                     # Package setup
+└── anomaly_detector/
+    ├── __init__.py
+    ├── detector.py              # Main detector orchestrator
+    ├── packet_analyzer.py       # Packet capture & parsing
+    ├── loop_detector.py         # Routing loop detection
+    ├── loss_detector.py         # Packet loss detection
+    ├── latency_detector.py      # Latency spike detection
+    ├── platform_utils.py        # Cross-platform utilities
+    ├── windows_monitor.py       # Windows-specific monitoring
+    └── pure_python_monitor.py   # Pure Python fallback
+```
+
+---
+
+## 🧪 Testing
+
+Run the test suite:
+
+```bash
+python -m pytest tests/
+```
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+---
+
+## 💡 Tips for Best Results
+
+✅ **Do:**
+- Run with elevated privileges
+- Monitor during periods of network activity  
+- Use longer timeout for larger datasets
+- Adjust thresholds based on your baseline
+
+❌ **Don't:**
+- Run on heavily congested networks without filtering
+- Use with dropped privilege levels
+- Expect results from inactive interfaces
+
+---
+
+## 🐛 Reporting Issues
+
+Found a bug? Have a feature request?
+
+Please include:
+- Your operating system and Python version
+- Command line arguments used
+- Output or error messages
+- Network environment description
+
+---
+
+**🎉 Enjoy beautiful network monitoring!**
+
+For more details, see [PLATFORMS.md](PLATFORMS.md) for platform-specific information.

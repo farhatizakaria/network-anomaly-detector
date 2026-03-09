@@ -67,13 +67,24 @@ class AnomalyDetector:
             )
             return detector.analyze(timeout)
         
-        # On Linux/macOS, use traditional packet capture
-        print(f"🐧 {PlatformInfo.get_system()} Detected - Using Scapy Packet Analysis")
+        # On Linux/macOS, try Scapy first, with fallback to pure Python
+        print(f"🐧 {PlatformInfo.get_system()} Detected - Attempting Scapy Packet Analysis")
         print()
         
-        # Step 1: Capture packets
+        # Step 1: Try to capture packets with Scapy
         if not self.packet_analyzer.capture_packets(timeout=timeout):
-            return None
+            print("\n⚠️  WARNING: Scapy packet capture failed")
+            print("   Falling back to Pure Python Network Monitor...")
+            print("   (This provides basic statistics instead of detailed packet analysis)\n")
+            
+            detector = WindowsAnomalyDetector(
+                interface=self.interface,
+                config=self.config
+            )
+            results = detector.analyze(timeout)
+            if results:
+                results['analysis_mode'] = 'fallback'
+            return results
         
         packets = self.packet_analyzer.get_packets()
         print("\nPacket Statistics:")
@@ -105,6 +116,9 @@ class AnomalyDetector:
         # Step 3: Generate report
         print("\n" + "=" * 60)
         self._print_summary()
+        
+        # Mark as native Scapy analysis
+        self.results['analysis_mode'] = 'scapy'
         
         return self.results
     
